@@ -1,0 +1,43 @@
+import java.util.ArrayList;
+import java.util.Collections;
+
+public class ArraysAssignment {
+
+    public static void main(String[] args) {
+
+        // Initialize ArrayList with all 7 days
+        ArrayList<String> weekDays = new ArrayList<>();
+        weekDays.add("Monday");
+        weekDays.add("Tuesday");
+        weekDays.add("Wednesday");
+        weekDays.add("Thursday");
+        weekDays.add("Friday");
+        weekDays.add("Saturday");
+        weekDays.add("Sunday");
+
+        System.out.println("All days of the week:");
+        printList(weekDays);
+
+        // Resizing The Arraylist:
+        // Remove Saturday and Sunday so the list contains only weekdays
+        weekDays.remove("Saturday");
+        weekDays.remove("Sunday");
+
+        System.out.println("\nWeekdays only:");
+        printList(weekDays);
+
+        // Bonus: shuffle the weekdays
+        Collections.shuffle(weekDays);
+
+        System.out.println("\nShuffled weekdays:");
+        printList(weekDays);
+    }
+
+    // Prints one element per row
+    public static void printList(ArrayList<String> list) {
+        for (String day : list) {
+            System.out.println(day);
+        }
+    }
+}
+
