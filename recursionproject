@@ -1,0 +1,29 @@
+import java.util.Arrays;
+
+public class Recursionproject {
+
+    public static void main(String[] args) {
+        int n = 5;
+        int[] result = getNthLine(n);
+        System.out.println("Row" + n + ": " + Arrays.toString(result));
+    }
+    
+    public static int[] getNthLine(int n) {
+        if (n == 0) {
+            return new int[]{1};
+        }
+        
+        int[] prevLine = getNthLine(n - 1);
+        
+        int[] currentLine = new int[n + 1];
+        
+        currentLine[0] = 1;
+        currentLine[n] = 1;
+        
+        for (int i = 1; i < n; i++) {
+            currentLine[i] = prevLine[i - 1] + prevLine[i];
+        }
+        
+        return currentLine;
+    }
+}
