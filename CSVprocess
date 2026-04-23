@@ -1,0 +1,98 @@
+import java.io.*;
+import java.util.*;
+
+public class CSVprocess {
+    public static void main(String[] args) {
+        
+        String filePath = "files/contacts.csv1";
+        ArrayList<Contact> contacts = new ArrayList<>();
+        Scanner input = new Scanner(System.in);
+        
+        // Load existing contacts from file
+        try (Scanner fileScanner = new Scanner(new File(filePath))) {
+            while (fileScanner.hasNextLine()) {
+                String[] parts = fileScanner.nextLine().split(",");
+                contacts.add(new Contact(parts[0], parts[1], parts[2], parts[3]));
+            }
+        }   catch (Exception e) {
+                System.out.println("Starting with a list");
+        }
+        
+        String choice;
+        
+        while (true) {
+            
+            System.out.print("\na = Add Contact, e = Email, y = Grad Year, n = Name, q = Quit program\n");
+            choice = input.nextLine();
+            
+            // ADD CONTACT
+            
+            if (choice.equals("q")) break;
+            
+            if (choice.equals("a")) {
+                System.out.print("Name: ");
+                String name = input.nextLine();
+                
+                System.out.print("Email: ");
+                String email = input.nextLine();
+                
+                System.out.print("Grad Year: ");
+                String year = input.nextLine();
+                
+                System.out.print("Username: ");
+                String user = input.nextLine();
+                
+                contacts.add(new Contact(name, email, year, user));
+            }
+            
+         else if (choice.equals("e"))
+                contacts.sort(Comparator.comparing(Contact::getEmail));
+
+            else if (choice.equals("y"))
+                contacts.sort(Comparator.comparing(Contact::getGradYear));
+
+            else if (choice.equals("n"))
+                contacts.sort(Comparator.comparing(Contact::getName));
+
+            // Print contacts
+            for (Contact c : contacts)
+                System.out.println(c);
+        }
+
+        // Save file
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            for (Contact c : contacts) {
+                writer.write(c.toCSV());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving file.");
+        }
+
+        input.close();
+    }
+}
+
+// Contact class
+class Contact {
+    String name, email, gradYear, username;
+
+    public Contact(String n, String e, String g, String u) {
+        name = n; email = e; gradYear = g; username = u;
+    }
+
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+    public String getGradYear() { return gradYear; }
+
+    public String toCSV() {
+        return name + "," + email + "," + gradYear + "," + username;
+    }
+
+    @Override
+    public String toString() {
+        return name + " , " + email + " , " + gradYear + " , " + username;
+    }
+}
+
+
