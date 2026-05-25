@@ -1,0 +1,414 @@
+import java.util.Scanner;
+import java.util.Random;
+import java.io.PrintWriter;
+import java.io.FileWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import javax.sound.sampled.*;
+import java.io.File;
+import java.util.*;
+
+public class RockPaperScissors3 {
+
+    public static void main(String[] args) {
+        GameEngine engine = new GameEngine();
+        engine.startGame();
+    }
+}
+
+// Plays a .wav sound file after a short delay (same pattern as teacher's PlaySound example)
+class SoundClass {
+    private String filePath;
+
+    public SoundClass(String filePath) {
+        this.filePath = filePath;
+    }
+
+    // Syntax for playing sounds - do not change this!
+    public static void playSound(String filePath) {
+        try {
+            File soundFile = new File(filePath);
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundFile);
+            Clip clip = AudioSystem.getClip();
+            clip.open(audioIn);
+            clip.setFramePosition(0);
+            clip.start();
+            // Give the clip time to finish before the program moves on
+            clip.addLineListener(event -> {
+                if (event.getType() == LineEvent.Type.STOP) {
+                    clip.close();
+                }
+            });
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+            System.out.println("Could not play sound: " + filePath);
+        }
+    }
+
+    // You must create some time for the sound, or it will be played in 0 seconds
+    public void createTimeForSound() {
+        String path = this.filePath;
+        TimerTask task = new TimerTask() {
+            public void run() {
+                playSound(path);
+            }
+        };
+        Timer timer = new Timer("Timer");
+        long delay = 500L; // half a second is enough for in-game feedback
+        timer.schedule(task, delay);
+    }
+}
+
+// Stores the player's name, win/loss record, and series streak data.
+// selectAction() gets input from human or picks randomly for the computer.
+class Player {
+    private String name;
+    private boolean isComputer;
+    private int wins;
+    private int losses;
+    private int currentStreak; // consecutive series wins
+    private int bestStreak;    // all-time best series streak for this player
+
+    public Player(String name, boolean isComputer) {
+        this.name = name;
+        this.isComputer = isComputer;
+        this.wins = 0;
+        this.losses = 0;
+        this.currentStreak = 0;
+        this.bestStreak = 0;
+    }
+
+    // Returns "Rock", "Paper", or "Scissors"
+    public String selectAction(Scanner scanner) {
+        if (isComputer) {
+            String[] choices = {"Rock", "Paper", "Scissors"};
+            Random rand = new Random();
+            return choices[rand.nextInt(3)];
+        }
+        System.out.println("Pick your move:  1) Rock   2) Paper   3) Scissors");
+        System.out.print("Your choice: ");
+        String input = scanner.nextLine().trim();
+
+        if (input.equals("1")) return "Rock";
+        if (input.equals("2")) return "Paper";
+        if (input.equals("3")) return "Scissors";
+
+        System.out.println("(Invalid input — defaulting to Rock)");
+        return "Rock";
+    }
+
+    // Called after winning a series — increments streak and updates best if needed
+    // Returns true if a new best streak was just set
+    public boolean recordSeriesWin() {
+        wins++;
+        currentStreak++;
+        if (currentStreak > bestStreak) {
+            bestStreak = currentStreak;
+            return true; // new personal best
+        }
+        return false;
+    }
+
+    // Called after losing a series — resets streak
+    public void recordSeriesLoss() {
+        losses++;
+        currentStreak = 0;
+    }
+
+    // Getters
+    public String getName()         { return name; }
+    public int getWins()            { return wins; }
+    public int getLosses()          { return losses; }
+    public int getCurrentStreak()   { return currentStreak; }
+    public int getBestStreak()      { return bestStreak; }
+
+    // Setters: used by FileManager when loading saved data
+    public void setWins(int w)            { this.wins = w; }
+    public void setLosses(int l)          { this.losses = l; }
+    public void setCurrentStreak(int s)   { this.currentStreak = s; }
+    public void setBestStreak(int s)      { this.bestStreak = s; }
+}
+
+class FileManager {
+    private static final String STATS_FILE   = "folder/player_stats.txt"; // FILE 1
+    private static final String HISTORY_FILE = "folder/game_history.txt"; // FILE 2
+    private static final String SCORES_FILE  = "folder/scores.txt";       // FILE 3
+
+    // FILE 1: player_stats.txt
+    // Format per line: name,wins,losses,currentStreak,bestStreak
+    // SAVE: updates this player's line; all other players' lines are preserved.
+    public void savePlayerStats(Player player) {
+        try {
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            boolean found = false;
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(STATS_FILE))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    // Match on name regardless of whether this line has 3 or 5 fields
+                    if (parts.length >= 3 && parts[0].equals(player.getName())) {
+                        lines.add(buildStatsLine(player));
+                        found = true;
+                    } else {
+                        lines.add(line);
+                    }
+                }
+            } catch (IOException e) {
+                // File doesn't exist yet - will be created below
+            }
+
+            if (!found) {
+                lines.add(buildStatsLine(player));
+            }
+
+            PrintWriter writer = new PrintWriter(new FileWriter(STATS_FILE));
+            for (String l : lines) writer.println(l);
+            writer.close();
+            System.out.println("[Saved] Player stats written to " + STATS_FILE);
+        } catch (IOException e) {
+            System.out.println("Could not save player stats.");
+        }
+    }
+
+    // FILE 1: player_stats.txt
+    // LOAD: finds this player's line and restores all five fields.
+    // Gracefully handles old 3-field lines (currentStreak and bestStreak default to 0).
+    public void loadPlayerStats(Player player) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(STATS_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 3 && parts[0].equals(player.getName())) {
+                    player.setWins(Integer.parseInt(parts[1].trim()));
+                    player.setLosses(Integer.parseInt(parts[2].trim()));
+                    // New fields — only present if saved with the updated format
+                    if (parts.length >= 5) {
+                        player.setCurrentStreak(Integer.parseInt(parts[3].trim()));
+                        player.setBestStreak(Integer.parseInt(parts[4].trim()));
+                    }
+                    System.out.println("[Loaded] Found saved stats for " + player.getName());
+                    return;
+                }
+            }
+            System.out.println("[New Player] No saved stats for " + player.getName() + " - starting fresh.");
+        } catch (IOException e) {
+            System.out.println("[New Player] No saved stats found - starting fresh.");
+        }
+    }
+
+    // FILE 2: game_history.txt
+    // APPEND: one line per round; series result + streak logged at series end via appendSeriesResult().
+    public void appendRoundHistory(int roundNum, String humanMove, String computerMove, String result) {
+        try {
+            PrintWriter writer = new PrintWriter(new FileWriter(HISTORY_FILE, true));
+            writer.println("  Round " + roundNum + ": "
+                         + "Human=" + humanMove + ", "
+                         + "Computer=" + computerMove
+                         + " -> " + result);
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Could not write round history.");
+        }
+    }
+
+    // FILE 2: game_history.txt
+    // APPEND: one summary line at the end of each series, including streak.
+    public void appendSeriesResult(String playerName, String seriesResult, int currentStreak, int bestStreak) {
+        try {
+            PrintWriter writer = new PrintWriter(new FileWriter(HISTORY_FILE, true));
+            String streakNote = currentStreak > 1
+                ? " | Series streak: " + currentStreak
+                  + (currentStreak == bestStreak ? " (NEW BEST!)" : "")
+                : "";
+            writer.println("[Series] " + playerName + ": " + seriesResult + streakNote);
+            writer.println(); // blank line between series for readability
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Could not write series result.");
+        }
+    }
+
+    // FILE 3: scores.txt
+    // Stores only the global series win totals (streak lives in player_stats.txt now).
+    public void saveScores(int humanSeriesWins, int computerSeriesWins) {
+        try {
+            PrintWriter writer = new PrintWriter(new FileWriter(SCORES_FILE));
+            writer.println("Human Series Wins: " + humanSeriesWins
+                         + "  |  Computer Series Wins: " + computerSeriesWins);
+            writer.close();
+            System.out.println("[Saved] Scores written to " + SCORES_FILE);
+        } catch (IOException e) {
+            System.out.println("Could not save scores.");
+        }
+    }
+
+    // FILE 3: scores.txt
+    // Returns [humanSeriesWins, computerSeriesWins]
+    public int[] loadScores() {
+        int[] scores = {0, 0};
+
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(SCORES_FILE));
+            String line = reader.readLine();
+            reader.close();
+
+            if (line != null) {
+                // "Human Series Wins: 4  |  Computer Series Wins: 2"
+                String[] halves = line.split("\\|");
+                scores[0] = Integer.parseInt(halves[0].split(":")[1].trim());
+                scores[1] = Integer.parseInt(halves[1].split(":")[1].trim());
+                System.out.println("[Loaded] Previous scores found.");
+            }
+        } catch (IOException e) {
+            System.out.println("[New Game] No saved scores found - starting at 0-0.");
+        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+            System.out.println("[Loaded] Scores file unreadable - resetting to 0-0.");
+        }
+
+        return scores;
+    }
+
+    // Helper: builds the 5-field CSV line for player_stats.txt
+    private String buildStatsLine(Player p) {
+        return p.getName() + ","
+             + p.getWins() + ","
+             + p.getLosses() + ","
+             + p.getCurrentStreak() + ","
+             + p.getBestStreak();
+    }
+}
+
+// Controls the game loop. Asks players for moves, decides the winner, and tells FileManager when to save/load.
+class GameEngine {
+
+    private Player human;
+    private Player computer;
+    private FileManager fileManager;
+
+    // Sound file paths — drop your .wav files into a sounds/ folder in the project
+    private static final String SOUND_WIN  = "sounds/win.wav";
+    private static final String SOUND_LOSE = "sounds/lose.wav";
+    private static final String SOUND_TIE  = "sounds/tie.wav";
+
+    public GameEngine() {
+        fileManager = new FileManager();
+    }
+
+    public void startGame() {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("ROCK, PAPER, SCISSORS");
+        System.out.println("Best of 3 Rounds");
+        System.out.println("-----------------------------------");
+        System.out.print("Enter your name: ");
+        String name = scanner.nextLine().trim();
+        if (name.isEmpty()) name = "Player";
+
+        human    = new Player(name, false);
+        computer = new Player("Computer", true);
+
+        // Load this player's personal stats (including their streaks) from FILE 1
+        fileManager.loadPlayerStats(human);
+
+        // Load global series win totals from FILE 3
+        int[] savedScores      = fileManager.loadScores();
+        int humanSeriesWins    = savedScores[0];
+        int computerSeriesWins = savedScores[1];
+
+        System.out.println("\nWelcome back, " + human.getName() + "!");
+        System.out.println("Your overall record - Wins: " + human.getWins()
+                         + "  Losses: " + human.getLosses());
+        System.out.println("Series score - You: " + humanSeriesWins
+                         + "  Computer: " + computerSeriesWins);
+        System.out.println("Your series streak - Current: " + human.getCurrentStreak()
+                         + "  Best ever: " + human.getBestStreak());
+        System.out.println();
+
+        // Play best-of-3 rounds
+        int humanRoundWins = 0;
+        int computerRoundWins = 0;
+        int roundNumber = 0;
+
+        while (humanRoundWins < 2 && computerRoundWins < 2) {
+            roundNumber++;
+            System.out.println("--- Round " + roundNumber + " ---");
+
+            String humanMove    = human.selectAction(scanner);
+            String computerMove = computer.selectAction(null);
+
+            System.out.println("Computer chose: " + computerMove);
+
+            String result = decideWinner(humanMove, computerMove);
+
+            if (result.equals("You WIN!")) {
+                humanRoundWins++;
+                System.out.println(">>> " + result + " <<<\n");
+                new SoundClass(SOUND_WIN).createTimeForSound();  // play win sound
+            } else if (result.equals("You LOSE.")) {
+                computerRoundWins++;
+                System.out.println(">>> " + result + " <<<\n");
+                new SoundClass(SOUND_LOSE).createTimeForSound(); // play lose sound
+            } else {
+                System.out.println(">>> " + result + " - play again! <<<\n");
+                new SoundClass(SOUND_TIE).createTimeForSound();  // play tie sound
+                roundNumber--; // tie: don't count this round number
+            }
+
+            // FILE 2: log each round (no streak note here — streaks are series-level)
+            fileManager.appendRoundHistory(roundNumber, humanMove, computerMove, result);
+        }
+
+        // Series outcome & streak update
+        String seriesResult;
+        if (humanRoundWins == 2) {
+            boolean newBest = human.recordSeriesWin(); // increments streak + wins
+            humanSeriesWins++;
+            seriesResult = "WIN";
+
+            System.out.println("YOU WIN THE SERIES! Nice work!");
+            if (newBest) {
+                System.out.println("New best series streak: " + human.getBestStreak() + "!");
+            } else if (human.getCurrentStreak() > 1) {
+                System.out.println("Series streak: " + human.getCurrentStreak());
+            }
+        } else {
+            human.recordSeriesLoss(); // resets streak + increments losses
+            computerSeriesWins++;
+            seriesResult = "LOSS";
+
+            System.out.println("Computer wins the series. Better luck next time!");
+        }
+
+        // FILE 1: save updated stats (wins, losses, currentStreak, bestStreak) per player
+        fileManager.savePlayerStats(human);
+
+        // FILE 2: append one series-summary line
+        fileManager.appendSeriesResult(human.getName(), seriesResult,
+                                       human.getCurrentStreak(), human.getBestStreak());
+
+        // FILE 3: save updated global series win totals
+        fileManager.saveScores(humanSeriesWins, computerSeriesWins);
+
+        System.out.println("\nFinal record - Wins: " + human.getWins()
+                         + "  Losses: " + human.getLosses());
+        System.out.println("Your series streak - Current: " + human.getCurrentStreak()
+                         + "  Best ever: " + human.getBestStreak());
+        System.out.println("------------------------------------------");
+
+        scanner.close();
+    }
+
+    // Returns "You WIN!", "You LOSE.", or "It's a TIE."
+    private String decideWinner(String humanMove, String computerMove) {
+        if (humanMove.equals(computerMove)) return "It's a TIE.";
+
+        if ((humanMove.equals("Rock")     && computerMove.equals("Scissors")) ||
+            (humanMove.equals("Paper")    && computerMove.equals("Rock"))     ||
+            (humanMove.equals("Scissors") && computerMove.equals("Paper"))) {
+            return "You WIN!";
+        }
+
+        return "You LOSE.";
+    }
+}
