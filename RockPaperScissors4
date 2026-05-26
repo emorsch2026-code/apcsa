@@ -9,7 +9,7 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.util.*;
 
-public class RockPaperScissors4 {
+public class RockPaperScissors3 {
 
     public static void main(String[] args) {
         GameEngine engine = new GameEngine();
@@ -201,6 +201,34 @@ class FileManager {
         }
     }
 
+    // FILE 4: how_to_play.txt
+    // Reads the instructions file and prints each line to the console.
+    // Called once at startup so the player sees the rules before entering their name.
+    public void printInstructions() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(INSTRUCTIONS_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            System.out.println("(Instructions file not found — skipping.)");
+        }
+    }
+
+    // FILE 4: how_to_play.txt
+    // Reads the instructions file line by line and prints it to the console.
+    // Called right after writeInstructionsFile() so the player sees the rules on startup.
+    public void printInstructionsToConsole() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(INSTRUCTIONS_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            System.out.println("Could not read instructions file.");
+        }
+    }
+
     // FILE 1: player_stats.txt
     // Format per line: name,wins,losses,currentStreak,bestStreak
     // SAVE: updates this player's line; all other players' lines are preserved.
@@ -365,8 +393,9 @@ class GameEngine {
     public void startGame() {
         Scanner scanner = new Scanner(System.in);
 
-        // FILE 4: write instructions file so players can always reference how_to_play.txt
+        // FILE 4: write instructions file, then print it so the player sees the rules right away
         fileManager.writeInstructionsFile();
+        fileManager.printInstructionsToConsole();
 
         System.out.println("ROCK, PAPER, SCISSORS");
         System.out.println("Best of 3 Rounds");
