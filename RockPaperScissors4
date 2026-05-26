@@ -9,7 +9,7 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.util.*;
 
-public class RockPaperScissors3 {
+public class RockPaperScissors4 {
 
     public static void main(String[] args) {
         GameEngine engine = new GameEngine();
