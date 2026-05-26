@@ -1,0 +1,41 @@
+import java.util.Random;
+
+public class ArraysAssignment2 {
+    public static void main(String[] args) {
+        
+        // Initialize array with all 7 days of the week
+        String[] weekDays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+        
+        // Print all 7 days, one per row
+        System.out.println("All 7 days of the week:");
+        for (String day : weekDays) {
+            System.out.println(day);
+        }
+        
+        // Resize the array to 5 (weekdays only - no Saturday or Sunday)
+        String[] weekDays2 = new String[5];
+        for (int i = 0; i < weekDays2.length; i++) {
+            weekDays2[i] = weekDays[i];
+        }
+        
+        // Print the 5 weekdays, one per row
+        System.out.println("\nJust the 5 weekdays:");
+        for (String day : weekDays2) {
+            System.out.println(day);
+        }
+        
+        // BONUS: Shuffle the weekdays randomly
+        System.out.println("\nShuffled weekdays:");
+        Random rand = new Random();
+        for (int i = weekDays2.length - 1; i > 0; i--) {
+            int j = rand.nextInt(i + 1);
+            // Swap weekDays2[i] and weekDays2[j]
+            String temp = weekDays2[i];
+            weekDays2[i] = weekDays2[j];
+            weekDays2[j] = temp;
+        }
+        for (String day : weekDays2) {
+            System.out.println(day);
+        }
+    }
+}
