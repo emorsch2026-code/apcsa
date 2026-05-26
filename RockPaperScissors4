@@ -136,86 +136,6 @@ class FileManager {
     private static final String INSTRUCTIONS_FILE = "folder/how_to_play.txt";  // FILE 4
 
     // FILE 4: how_to_play.txt
-    // Writes a plain-text instructions file so new players know how the game works.
-    // The file is overwritten each time the game starts so it is always up to date.
-    public void writeInstructionsFile() {
-        try {
-            PrintWriter writer = new PrintWriter(new FileWriter(INSTRUCTIONS_FILE));
-            writer.println("========================================");
-            writer.println("       HOW TO PLAY: ROCK PAPER SCISSORS");
-            writer.println("========================================");
-            writer.println();
-            writer.println("OBJECTIVE");
-            writer.println("---------");
-            writer.println("Win 2 out of 3 rounds to win the series.");
-            writer.println("Beat the computer as many series in a row as you can to build a streak!");
-            writer.println();
-            writer.println("MOVES");
-            writer.println("-----");
-            writer.println("  Rock     beats  Scissors");
-            writer.println("  Scissors beats  Paper");
-            writer.println("  Paper    beats  Rock");
-            writer.println("  Same move = Tie (the round is replayed, it does not count)");
-            writer.println();
-            writer.println("HOW TO ENTER YOUR MOVE");
-            writer.println("----------------------");
-            writer.println("  Type 1 and press Enter -> Rock");
-            writer.println("  Type 2 and press Enter -> Paper");
-            writer.println("  Type 3 and press Enter -> Scissors");
-            writer.println("  Any other input defaults to Rock.");
-            writer.println();
-            writer.println("SCORING");
-            writer.println("-------");
-            writer.println("  - Your win/loss record is saved between sessions.");
-            writer.println("  - Series wins and losses are tracked separately from round wins.");
-            writer.println("  - Your current series streak and your all-time best streak are saved.");
-            writer.println("  - A new best streak earns a special message!");
-            writer.println();
-            writer.println("SAVED FILES (inside the 'folder/' directory)");
-            writer.println("---------------------------------------------");
-            writer.println("  player_stats.txt  - Your personal win/loss/streak record");
-            writer.println("  game_history.txt  - A log of every round and series result");
-            writer.println("  scores.txt        - Overall series win totals for you and the computer");
-            writer.println("  how_to_play.txt   - This file");
-            writer.println();
-            writer.println("SOUNDS");
-            writer.println("------");
-            writer.println("  The game plays a short sound after each round:");
-            writer.println("    win.wav  - you won the round");
-            writer.println("    lose.wav - you lost the round");
-            writer.println("    tie.wav  - the round was a tie");
-            writer.println("  Sound files must be placed in the 'sounds/' folder.");
-            writer.println("  Missing sound files are skipped without crashing the game.");
-            writer.println();
-            writer.println("TIPS");
-            writer.println("----");
-            writer.println("  - The computer picks its move completely at random every round.");
-            writer.println("  - There is no pattern to predict — pure luck and fun!");
-            writer.println("  - Play multiple sessions to grow your all-time best streak.");
-            writer.println();
-            writer.println("Good luck!");
-            writer.close();
-            System.out.println("[Info] Instructions written to " + INSTRUCTIONS_FILE);
-        } catch (IOException e) {
-            System.out.println("Could not write instructions file.");
-        }
-    }
-
-    // FILE 4: how_to_play.txt
-    // Reads the instructions file and prints each line to the console.
-    // Called once at startup so the player sees the rules before entering their name.
-    public void printInstructions() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(INSTRUCTIONS_FILE))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
-            }
-        } catch (IOException e) {
-            System.out.println("(Instructions file not found — skipping.)");
-        }
-    }
-
-    // FILE 4: how_to_play.txt
     // Reads the instructions file line by line and prints it to the console.
     // Called right after writeInstructionsFile() so the player sees the rules on startup.
     public void printInstructionsToConsole() {
@@ -381,7 +301,7 @@ class GameEngine {
     private Player computer;
     private FileManager fileManager;
 
-    // Sound file paths — drop your .wav files into a sounds/ folder in the project
+    // Sound file paths - drop your .wav files into a sounds/ folder in the project
     private static final String SOUND_WIN  = "sounds/win.wav";
     private static final String SOUND_LOSE = "sounds/lose.wav";
     private static final String SOUND_TIE  = "sounds/tie.wav";
@@ -393,8 +313,7 @@ class GameEngine {
     public void startGame() {
         Scanner scanner = new Scanner(System.in);
 
-        // FILE 4: write instructions file, then print it so the player sees the rules right away
-        fileManager.writeInstructionsFile();
+        // FILE 4: print instruction file
         fileManager.printInstructionsToConsole();
 
         System.out.println("ROCK, PAPER, SCISSORS");
@@ -411,17 +330,14 @@ class GameEngine {
         fileManager.loadPlayerStats(human);
 
         // Load global series win totals from FILE 3
-        int[] savedScores      = fileManager.loadScores();
-        int humanSeriesWins    = savedScores[0];
+        int[] savedScores = fileManager.loadScores();
+        int humanSeriesWins = savedScores[0];
         int computerSeriesWins = savedScores[1];
 
         System.out.println("\nWelcome back, " + human.getName() + "!");
-        System.out.println("Your overall record - Wins: " + human.getWins()
-                         + "  Losses: " + human.getLosses());
-        System.out.println("Series score - You: " + humanSeriesWins
-                         + "  Computer: " + computerSeriesWins);
-        System.out.println("Your series streak - Current: " + human.getCurrentStreak()
-                         + "  Best ever: " + human.getBestStreak());
+        System.out.println("Your overall record - Wins: " + human.getWins() + "  Losses: " + human.getLosses());
+        System.out.println("Series score - You: " + humanSeriesWins + "  Computer: " + computerSeriesWins);
+        System.out.println("Your series streak - Current: " + human.getCurrentStreak() + "  Best ever: " + human.getBestStreak());
         System.out.println();
 
         // Play best-of-3 rounds
